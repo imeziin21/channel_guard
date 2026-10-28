@@ -1,5 +1,7 @@
-import 'package:channel_guard/channel_guard.dart' as channel_guard;
+import 'package:channel_guard/src/analyzer/dart_channel_analyzer.dart';
 
-void main(List<String> arguments) {
-  print('Hello world: ${channel_guard.calculate()}!');
+void main() {
+  final analyzer = DartChannelAnalyzer();
+
+  analyzer.analyze('fixtures/sample_channel.dart');
 }

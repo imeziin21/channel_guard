@@ -45,7 +45,18 @@ class ChannelVisitor extends RecursiveAstVisitor<void> {
   @override
   void visitMethodInvocation(MethodInvocation node) {
     if (node.methodName.name == 'invokeMethod') {
+      final target = node.target;
+
+      if (target is SimpleIdentifier) {
+        final variableName = target.toSource();
+        final channelName = channels[variableName];
+        print('Channel variable: $variableName');
+        print('Resolved channel: $channelName');
+      }
+    }
+    if (node.methodName.name == 'invokeMethod') {
       final arguments = node.argumentList.arguments;
+      print(node.target);
 
       if (arguments.isNotEmpty && arguments.first is StringLiteral) {
         final methodName = (arguments.first as StringLiteral).stringValue;
