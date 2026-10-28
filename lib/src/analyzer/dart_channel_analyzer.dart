@@ -15,12 +15,14 @@ class DartChannelAnalyzer {
 
     print('Channels: ${visitor.channels}');
     print('Methods: ${visitor.methodNames}');
+    print('Channel methods: ${visitor.channelsMethods}');
   }
 }
 
 class ChannelVisitor extends RecursiveAstVisitor<void> {
   final Map<String, String> channels = {};
   final List<String> methodNames = [];
+  final Map<String, List<String>> channelsMethods = {};
 
   @override
   void visitVariableDeclaration(VariableDeclaration node) {
@@ -52,17 +54,19 @@ class ChannelVisitor extends RecursiveAstVisitor<void> {
         final channelName = channels[variableName];
         print('Channel variable: $variableName');
         print('Resolved channel: $channelName');
-      }
-    }
-    if (node.methodName.name == 'invokeMethod') {
-      final arguments = node.argumentList.arguments;
-      print(node.target);
+        final arguments = node.argumentList.arguments;
+        print(node.target);
 
-      if (arguments.isNotEmpty && arguments.first is StringLiteral) {
-        final methodName = (arguments.first as StringLiteral).stringValue;
+        if (arguments.isNotEmpty && arguments.first is StringLiteral) {
+          final methodName = (arguments.first as StringLiteral).stringValue;
 
-        if (methodName != null) {
-          methodNames.add(methodName);
+          if (methodName != null) {
+            methodNames.add(methodName);
+
+            if (channelName != null) {
+              channelsMethods.putIfAbsent(channelName, () => []).add(methodName);
+            }
+          }
         }
       }
     }
