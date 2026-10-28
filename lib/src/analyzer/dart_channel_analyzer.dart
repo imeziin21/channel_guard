@@ -13,11 +13,13 @@ class DartChannelAnalyzer {
     final visitor = ChannelVisitor();
     result.unit.accept(visitor);
     print(visitor.channelName);
+    print(visitor.methodNames);
   }
 }
 
 class ChannelVisitor extends RecursiveAstVisitor<void> {
   final List<String> channelName = [];
+  final List<String> methodNames = [];
 
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
@@ -28,6 +30,23 @@ class ChannelVisitor extends RecursiveAstVisitor<void> {
   void visitMethodInvocation(MethodInvocation node) {
     final nodeName = node.methodName.name;
     final nodeArgument = node.argumentList.arguments;
+
+    if (nodeName == 'invokeMethod') {
+      print('invokeMethod detected: $node');
+
+      if (nodeArgument.isNotEmpty) {
+        final firstArgument = nodeArgument.first;
+
+        if (firstArgument is StringLiteral) {
+          final methodName = firstArgument.stringValue;
+
+          if (methodName != null) {
+            methodNames.add(methodName);
+            print("InvokeMethod name : $methodName");
+          }
+        }
+      }
+    }
 
     if (nodeName == "MethodChannel") {
       print('MethodChannel detected: $node');

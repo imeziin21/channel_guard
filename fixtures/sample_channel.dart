@@ -8,4 +8,8 @@ class TestChannel{
   static final battery = MethodChannel('app/battery');
   static final camera = MethodChannel('app/camera');
   static final location = MethodChannel('app/location');
+
+  void test() {
+    battery.invokeMethod('getBatteryLevel');
+  }
 }
