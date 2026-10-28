@@ -9,11 +9,16 @@ class DartChannelAnalyzer {
     final source = file.readAsStringSync();
 
     final result = parseString(content: source);
-    result.unit.accept(ChannelVisitor());
+    
+    final visitor = ChannelVisitor();
+    result.unit.accept(visitor);
+    print(visitor.channelName);
   }
 }
 
 class ChannelVisitor extends RecursiveAstVisitor<void> {
+  final List<String> channelName = [];
+
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     print("Instance creation detected: $node");
@@ -32,7 +37,12 @@ class ChannelVisitor extends RecursiveAstVisitor<void> {
         final firstArgument = nodeArgument.first;
         
         if (firstArgument is StringLiteral) {
-          print("Channel name : ${firstArgument.stringValue}");
+          final name = firstArgument.stringValue;
+
+          if (name != null) {
+            channelName.add(name);
+            print("Channel name : ${name}");
+          }
         }
       }
     }
