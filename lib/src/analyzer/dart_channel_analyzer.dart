@@ -107,8 +107,8 @@ class DartChannelAnalyzer {
         if (uri == null ||
             !uri.endsWith('.dart') ||
             uri.startsWith('dart:') ||
-            uri.startsWith('package:'))
-          continue;
+            uri.startsWith('package:')){
+          continue;}
         final imported = p.normalize(
           p.join(p.dirname(unit.path), Uri.decodeFull(uri)),
         );
