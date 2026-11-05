@@ -1,16 +1,18 @@
 name: channel_guard
-description: A sample command-line application.
-version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+description: Static Dart CLI scanner for Flutter MethodChannel declarations and calls.
+version: 0.1.0
+repository: https://github.com/imeziin21/channel_guard
 
 environment:
   sdk: ^3.11.3
 
-# Add regular dependencies here.
 dependencies:
   analyzer: ^14.5.0
-  path: ^1.9.0
+  path: ^1.9.1
 
 dev_dependencies:
   lints: ^6.0.0
   test: ^1.25.6
+
+executables:
+  channel_guard: channel_guard
