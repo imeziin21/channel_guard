@@ -148,3 +148,17 @@ Use the results as a development aid, not as a security or correctness guarantee
 Built with Dart and the [`analyzer`](https://pub.dev/packages/analyzer) package.
 
 Repository: https://github.com/imeziin21/channel_guard
+
+
+## v0.2.0 diagnostics
+
+The `issues` JSON array and CLI diagnostics now include:
+
+- `CG002`: no statically resolved calls for a declared channel (heuristic).
+- `CG003`: repeated channel name (may be intentional).
+- `CG004`: method name is not a literal.
+- `CG005`: channel name is not a literal.
+- `CG006`: empty method name.
+
+These are static hints, not guaranteed runtime failures. `--strict` still only
+changes the exit code for parser errors.

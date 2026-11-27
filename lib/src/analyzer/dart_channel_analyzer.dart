@@ -21,30 +21,46 @@ class ChannelInfo {
 }
 
 class ChannelCall {
-  const ChannelCall(this.channel, this.method, this.file, this.line);
+  const ChannelCall(this.channel, this.method, this.file, this.line, {this.variable});
   final String channel;
   final String method;
+  // Receiver variable, when statically identifiable.
+  final String? variable;
   final String file;
   final int line;
   Map<String, Object> toJson() => {
     'channel': channel,
     'method': method,
+    if (variable != null) 'variable': variable as String,
     'file': file,
     'line': line,
   };
 }
 
+class ChannelIssue {
+  const ChannelIssue(this.code, this.message, this.file, this.line);
+  final String code;
+  final String message;
+  final String file;
+  final int line;
+  Map<String, Object> toJson() => {
+    'code': code, 'message': message, 'file': file, 'line': line,
+  };
+}
+
 class AnalysisReport {
-  const AnalysisReport(this.channels, this.calls, this.files, this.errors);
+  const AnalysisReport(this.channels, this.calls, this.files, this.errors, [this.issues = const []]);
   final List<ChannelInfo> channels;
   final List<ChannelCall> calls;
   final int files;
   final List<String> errors;
+  final List<ChannelIssue> issues;
   Map<String, Object> toJson() => {
     'filesScanned': files,
     'channels': channels.map((e) => e.toJson()).toList(),
     'calls': calls.map((e) => e.toJson()).toList(),
     'errors': errors,
+    'issues': issues.map((e) => e.toJson()).toList(),
   };
 }
 
@@ -88,11 +104,13 @@ class DartChannelAnalyzer {
     }
 
     final declarations = <ChannelInfo>[];
+    final issues = <ChannelIssue>[];
     final exported = <String, Map<String, String>>{};
     for (final unit in units) {
       final collector = _DeclarationCollector(unit);
       unit.ast.accept(collector);
       declarations.addAll(collector.found);
+      issues.addAll(collector.issues);
       exported[unit.path] = collector.topLevel;
     }
 
@@ -142,8 +160,38 @@ class DartChannelAnalyzer {
       final collector = _CallCollector(unit, visible, prefixes);
       unit.ast.accept(collector);
       calls.addAll(collector.found);
+      issues.addAll(collector.issues);
     }
-    return AnalysisReport(declarations, calls, files.length, errors);
+    // Duplicate names are informational: sharing a channel name can be intentional.
+    final grouped = <String, List<ChannelInfo>>{};
+    for (final channel in declarations) {
+      grouped.putIfAbsent(channel.name, () => []).add(channel);
+    }
+    for (final entries in grouped.values) {
+      if (entries.length < 2) continue;
+      for (final entry in entries.skip(1)) {
+        issues.add(ChannelIssue('CG003',
+          'Channel name "${entry.name}" is declared more than once (may be intentional).',
+          entry.file, entry.line));
+      }
+    }
+    // Only flag an unused declaration when no calls with its name were resolved.
+    // This is a project-wide heuristic, not proof of dead code.
+    
+    for (final entry in declarations) {
+      if (!calls.any((call) => call.channel == entry.name &&
+          (call.variable == null || call.file != entry.file ||
+           call.variable == entry.variable))) {
+        issues.add(ChannelIssue('CG002',
+          'No statically resolved calls found for "${entry.name}".',
+          entry.file, entry.line));
+      }
+    }
+    issues.sort((a, b) {
+      final file = a.file.compareTo(b.file);
+      return file != 0 ? file : a.line.compareTo(b.line);
+    });
+    return AnalysisReport(declarations, calls, files.length, errors, issues);
   }
 
   bool _excluded(String path) => path
@@ -181,6 +229,7 @@ class _DeclarationCollector extends RecursiveAstVisitor<void> {
   _DeclarationCollector(this.unit);
   final _Unit unit;
   final found = <ChannelInfo>[];
+  final issues = <ChannelIssue>[];
   final topLevel = <String, String>{};
 
   @override
@@ -188,6 +237,11 @@ class _DeclarationCollector extends RecursiveAstVisitor<void> {
     final args = _channelArguments(node.initializer)?.arguments;
     if (args != null && args.isNotEmpty) {
       final name = _literal(args.first);
+      if (name == null) {
+        issues.add(ChannelIssue('CG005',
+          'Channel name is not a static string literal.',
+          unit.displayPath, unit.line(node)));
+      }
       if (name != null) {
         final variable = node.name.lexeme;
         found.add(
@@ -210,6 +264,7 @@ class _CallCollector extends RecursiveAstVisitor<void> {
   final Map<String, String> imported;
   final Map<String, Map<String, String>> prefixes;
   final found = <ChannelCall>[];
+  final issues = <ChannelIssue>[];
   final scopes = <Map<String, String?>>[];
 
   String? _resolve(String name) {
@@ -259,8 +314,10 @@ class _CallCollector extends RecursiveAstVisitor<void> {
     if (methods.contains(node.methodName.name) && node.target != null) {
       final target = node.target!;
       String? channel;
+      String? receiverVariable;
       if (target is SimpleIdentifier) {
         channel = _resolve(target.name);
+        receiverVariable = target.name;
       } else if (target is PrefixedIdentifier) {
         channel = prefixes[target.prefix.name]?[target.identifier.name];
       } else if (target is PropertyAccess &&
@@ -275,11 +332,23 @@ class _CallCollector extends RecursiveAstVisitor<void> {
       final args = node.argumentList.arguments;
       if (channel != null && args.isNotEmpty) {
         final method = _literal(args.first);
-        if (method != null) {
-          found.add(
-            ChannelCall(channel, method, unit.displayPath, unit.line(node)),
-          );
+        if (method == null) {
+          issues.add(ChannelIssue('CG004',
+            'Method name is not a static string literal.',
+            unit.displayPath, unit.line(node)));
+        } else if (method.isEmpty) {
+          issues.add(ChannelIssue('CG006',
+            'Method name is empty.', unit.displayPath, unit.line(node)));
         }
+        found.add(
+          ChannelCall(
+            channel,
+            method ?? '<dynamic>',
+            unit.displayPath,
+            unit.line(node),
+            variable: receiverVariable,
+          ),
+        );
       }
     }
     super.visitMethodInvocation(node);

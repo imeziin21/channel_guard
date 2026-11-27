@@ -1,6 +1,6 @@
 name: channel_guard
 description: Static Dart CLI scanner for Flutter MethodChannel declarations and calls.
-version: 0.1.0
+version: 0.2.1
 repository: https://github.com/imeziin21/channel_guard
 
 environment:

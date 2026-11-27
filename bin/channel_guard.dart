@@ -75,7 +75,7 @@ void main(List<String> arguments) {
       stdout.writeln('  ✦  Files scanned       ${report.files}');
       stdout.writeln('  ✦  Channels found      ${report.channels.length}');
       stdout.writeln('  ✦  Method calls        ${report.calls.length}');
-      stdout.writeln('  ✦  Issues detected     ${report.errors.length}');
+      stdout.writeln('  ✦  Issues detected     ${report.errors.length + report.issues.length}');
       stdout.writeln();
       stdout.writeln(tint('  ♡  DISCOVERED CHANNELS', _pink));
       stdout.writeln(
@@ -87,7 +87,9 @@ void main(List<String> arguments) {
       for (var i = 0; i < report.channels.length; i++) {
         final channel = report.channels[i];
         final methods = report.calls
-            .where((call) => call.channel == channel.name)
+            .where((call) => call.channel == channel.name &&
+                (call.variable == null || call.file != channel.file ||
+                 call.variable == channel.variable))
             .toList();
         stdout.writeln();
         stdout.writeln(
@@ -111,6 +113,13 @@ void main(List<String> arguments) {
           }
         }
       }
+      if (report.issues.isNotEmpty) {
+        stdout.writeln();
+        stdout.writeln(tint('  ⚠  DIAGNOSTICS', _yellow));
+        for (final issue in report.issues) {
+          stdout.writeln('  • ${issue.code} ${issue.file}:${issue.line} ${issue.message}');
+        }
+      }
       if (report.errors.isNotEmpty) {
         stdout.writeln();
         stdout.writeln(tint('  ⚠  ISSUES', _yellow));
@@ -123,10 +132,10 @@ void main(List<String> arguments) {
         tint('  ──────────────────────────────────────────', _muted),
       );
       stdout.writeln(
-        report.errors.isEmpty
+        report.errors.isEmpty && report.issues.isEmpty
             ? tint('  ✓  All done! Your channels look lovely. ✿', _mint)
             : tint(
-                '  !  Scan finished with ${report.errors.length} issue(s).',
+                '  !  Scan finished with ${report.errors.length + report.issues.length} issue(s).',
                 _yellow,
               ),
       );
