@@ -1,3 +1,10 @@
+## 0.2.2
+
+- Redesigned package documentation.
+- Updated installation and usage instructions.
+- Added diagnostic rule descriptions and CLI examples.
+- Updated CLI version display.
+
 ## 0.2.1
 
 - Added unused MethodChannel detection (CG002).

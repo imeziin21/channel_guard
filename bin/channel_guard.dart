@@ -140,7 +140,7 @@ void main(List<String> arguments) {
       out();
       out(
         '  ${paint('CHANNEL GUARD', _white, bold: true)}'
-        '  ${paint('v0.2.1', _gray)}',
+        '  ${paint('v0.2.2', _gray)}',
       );
       out(paint('  MethodChannel Static Analysis Utility', _gray));
 
